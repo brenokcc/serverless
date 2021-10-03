@@ -106,15 +106,14 @@ class ServerlessApp():
         lam = self.get_client('lambda')
         api = self.apigateway.create_rest_api(name=self.name)
         root = self.apigateway.get_resources(restApiId=api['id'])['items'][0]
-        # resource = self.apigateway.create_resource(restApiId=api['id'], parentId=root['id'], pathPart='action')
-        resource = root
+        resource = self.apigateway.create_resource(restApiId=api['id'], parentId=root['id'], pathPart='{proxy+}')
         self.log(resource)
         put_method = self.apigateway.put_method(
-            restApiId=api['id'], resourceId=resource['id'], httpMethod='GET', authorizationType='NONE',
+            restApiId=api['id'], resourceId=resource['id'], httpMethod='ANY', authorizationType='NONE',
         )
         self.log(put_method)
         put_method_response = self.apigateway.put_method_response(
-            restApiId=api['id'], resourceId=resource['id'], httpMethod='GET', statusCode='200'
+            restApiId=api['id'], resourceId=resource['id'], httpMethod='ANY', statusCode='200'
         )
         self.log(put_method_response)
         function = lam.get_function(FunctionName=self.name)
@@ -125,7 +124,7 @@ class ServerlessApp():
         put_integration = self.apigateway.put_integration(
             restApiId=api['id'],
             resourceId=resource['id'],
-            httpMethod='GET',
+            httpMethod='ANY',
             type='AWS_PROXY',
             integrationHttpMethod='POST',
             uri=uri,
@@ -135,16 +134,14 @@ class ServerlessApp():
         put_integration_response = self.apigateway.put_integration_response(
             restApiId=api['id'],
             resourceId=resource['id'],
-            httpMethod='GET',
+            httpMethod='ANY',
             statusCode='200',
             selectionPattern=''
         )
         self.log(put_integration_response)
-
-    def deploy_api(self, stage_name='prod'):
-        api = self.get_api(self.name)
-        deployment = self.apigateway.create_deployment(restApiId=api['id'], stageName=stage_name)
+        deployment = self.apigateway.create_deployment(restApiId=api['id'], stageName='prod')
         self.log(deployment)
+        self.get_url()
 
     def get_api(self, name):
         for api in self.apigateway.get_rest_apis()['items']:
@@ -154,7 +151,7 @@ class ServerlessApp():
 
     def get_url(self, stage_name='prod'):
         api = self.get_api(self.name)
-        url = 'https://{}.execute-api.{}.amazonaws.com/{}'.format(
+        url = 'https://{}.execute-api.{}.amazonaws.com/{}/api/'.format(
             api['id'], self.apigateway.meta.region_name, stage_name
         )
         self.log(url)
@@ -189,8 +186,6 @@ if __name__ == '__main__':
     # app.create_role()
     # app.create_lambda()
     # app.create_api()
-    # app.deploy_api()
-    # app.get_url()
     # app.update_lambda()
     # app.delete_api()
     # app.delete_lambda()

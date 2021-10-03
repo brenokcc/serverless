@@ -1,6 +1,6 @@
 import json
 def handler(event, context):
-    message = 'Hello {}!'.format('there')
+    message = 'Hello {}!'.format('people')
     body={'message': message, 'event': event}
     return {
         "statusCode": 200,
