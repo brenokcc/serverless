@@ -1,3 +1,7 @@
 .idea/
 *.pyc
 .env
+layer
+layer.zip
+.DS_Store
+
