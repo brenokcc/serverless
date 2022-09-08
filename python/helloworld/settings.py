@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/3.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -85,7 +85,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'db',
         'USER': 'postgres',
-        'PASSWORD': '1793ifrn.?',
+        'PASSWORD': os.environ['DBPASSWD'],
         'HOST': '3.87.183.182',
         'PORT': '5432'
     }
