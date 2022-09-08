@@ -26,7 +26,7 @@ class ServerlessApp():
         self.lam = self.get_client('lambda')
         self.apigateway = self.get_client('apigateway')
         self.dynamodb = self.get_resource('dynamodb')
-        self.runtime = 'python3.7'
+        self.runtime = 'python3.8'
 
     def log(self, data):
         if self.debug:
@@ -191,7 +191,7 @@ class ServerlessApp():
                     FunctionName=self.get_lambda_name(),
                     Runtime=self.runtime,
                     Role=role['Role']['Arn'],
-                    Handler='hello.handler',
+                    Handler='app.handler',
                     Code={'ZipFile': self.pack()}
                 )
                 self.log(function)
@@ -228,22 +228,29 @@ class ServerlessApp():
             else:
                 raise e
 
-    def create_lambda_layer(self, *modules):
-        for module in modules:
-            os.system('pip install --platform manylinux1_x86_64 --only-binary=:all: {} -t layer/python'.format(module))
-        shutil.make_archive('layer', 'zip', 'layer')
+    def create_lambda_layer(self, **modules):
+        for name, module in modules.items():
+            layer_dir = 'layer/{}/python'.format(name)
+            os.makedirs(layer_dir, exist_ok=True)
+            os.system('pip install --platform manylinux1_x86_64 --only-binary=:all: {} -t {}'.format(module, layer_dir))
 
-    def upload_lamba_layer(self):
-        response = self.lam.publish_layer_version(
-            LayerName=self.name,
-            Description='Layer for {}'.format(self.name),
-            Content={'ZipFile': open('layer.zip', 'r+b').read()},
-            CompatibleRuntimes=[self.runtime],
-            LicenseInfo='N/A'
-        )
-        self.log(response)
-        response = self.lam.update_function_configuration(FunctionName=self.name, Layers=[response['LayerVersionArn']])
-        self.log(response)
+    def upload_lamba_layer(self, *names):
+        for name in names:
+            file_name = '{}.zip'.format(name)
+            shutil.make_archive(name, 'zip', 'layer/{}'.format(name))
+            self.log('Publishing layer {}...'.format(name))
+            response = self.lam.publish_layer_version(
+                LayerName=name,
+                Description='Layer for {}'.format(name),
+                Content={'ZipFile': open(file_name, 'r+b').read()},
+                CompatibleRuntimes=[self.runtime],
+                LicenseInfo='N/A'
+            )
+            self.log(response)
+            return
+            self.log('Updating lambda layers...')
+            response = self.lam.update_function_configuration(FunctionName=self.name, Layers=[response['LayerVersionArn']])
+            self.log(response)
 
     def update_lambda_code(self):
         response = self.lam.update_function_code(
@@ -417,7 +424,7 @@ class ServerlessApp():
 
 
 if __name__ == '__main__':
-    app = ServerlessApp(os.environ['KEY'], os.environ['SECRET'], os.environ['REGION'], 'HelloWorld', 'hello.py', debug=True)
+    app = ServerlessApp(os.environ['KEY'], os.environ['SECRET'], os.environ['REGION'], 'HelloWorld', 'app.py', debug=True)
 
     # app.create_role()
     # app.delete_role()
@@ -430,18 +437,21 @@ if __name__ == '__main__':
 
     # app.create_lambda()
     # app.create_lambda_policy()
-    # app.create_lambda_layer('qrcode')
-    # app.upload_lamba_layer()
+    # app.create_lambda_layer(django=('Django==3.2', 'aws-wsgi'))
+    # app.create_lambda_layer(pillow=('Pillow==8.0'))
+    # app.create_lambda_layer(postgres=('psycopg2-binary==2.7.5'))
+    # app.upload_lamba_layer('postgres')
     # app.update_lambda_code()
-    # app.invoke_lambda(dict(a=1, b=2))
+    app.invoke_lambda(dict(a=1, b=2))
     # app.delete_lambda_layer()
     # app.delete_lambda()
 
     # app.create_api()
+    # app.get_api_url()
     # app.delete_api()
 
     # app.create_table()
     # app.create_index('sexo')
     # app.delete_table()
 
-    app.get_cost()
+    # app.get_cost()

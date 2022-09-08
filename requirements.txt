@@ -1,2 +1,6 @@
 awscli
 python-dotenv
+aws-wsgi
+psycopg2-binary
+Pillow
+Django
